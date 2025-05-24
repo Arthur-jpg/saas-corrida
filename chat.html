@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RunSheet - Assistente de Planilhas de Corrida</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/geist-font/1.0.0/fonts/geist-sans/style.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="env.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: 'Geist Sans', sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 250px;
+      background-color: #f4f4f4;
+      border-right: 1px solid #ddd;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .sidebar h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+    .sidebar button {
+      background: #854fff;
+      color: white;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* Main Chat Area */
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: #fff;
+    }
+
+    .chat-header {
+      background: #854fff;
+      color: white;
+      padding: 20px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .chat-body {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .chat-body p {
+      margin-bottom: 15px;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      word-wrap: break-word;
+      max-width: 80%;
+    }
+
+    .user-message {
+      background: #f1f1f1;
+      color: #333;
+      align-self: flex-end;
+    }
+
+    .bot-message {
+      background: #854fff;
+      color: #fff;
+      align-self: flex-start;
+    }
+
+    .chat-footer {
+      display: flex;
+      padding: 12px;
+      border-top: 1px solid #ddd;
+      gap: 10px;
+    }
+
+    .chat-footer input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      outline: none;
+    }
+
+    .chat-footer button {
+      background: #854fff;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .chat-msg-wrapper {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      width: fit-content;
+      max-width: 80%;
+      margin-bottom: 15px;
+      overflow: visible; /* Permite que o botão seja exibido fora do balão se necessário */
+    }
+    .chat-msg-wrapper.user {
+      margin-left: auto;
+      flex-direction: row-reverse;
+    }
+    .chat-msg-wrapper.bot {
+      margin-right: auto;
+      flex-direction: row;
+    }
+    .chat-body .user-message,
+    .chat-body .bot-message {
+      margin-bottom: 0;
+      padding-right: 32px; /* Garante espaço para o botão dentro do balão */
+      min-width: 48px;
+      word-break: break-word;
+      position: relative;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 12px; /* Agora fica dentro do balão */
+      background: #fff;
+      border: 1px solid #eee;
+      color: #888;
+      border-radius: 6px;
+      padding: 4px 7px;
+      font-size: 15px;
+      cursor: pointer;
+      opacity: 0.7;
+      transition: background 0.2s, color 0.2s, opacity 0.2s;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .copy-btn:hover, .copy-btn.copied {
+      background: #f4f4f4;
+      color: #333;
+      opacity: 1;
+      border-color: #ccc;
+    }
+    .copy-btn.copied {
+      color: #1a7f37;
+      background: #e6ffe6;
+      border-color: #1a7f37;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>RunSheet</h2>
+    <select id="area-selector" style="margin-bottom: 10px; border-radius:6px; padding:6px;">
+      <option value="corrida">Corrida</option>
+    </select>
+    <a href="index.html" class="btn btn-outline" style="margin-bottom: 10px; text-align: center;">Voltar</a>
+    <button onclick="newChat()">+ Novo Chat</button>
+    <div id="chat-list">
+    </div>
+    <div class="account-status" id="account-status">
+      <p class="free-account">Conta Gratuita</p>
+      <a href="checkout.html" class="btn btn-primary">Fazer Upgrade</a>
+    </div>
+  </div>
+
+  <div class="chat-container">
+    <div class="chat-header">Assistente de Planilhas de Corrida</div>
+    <div class="chat-body" id="chat-widget-body">
+      <p class="bot-message"><strong>Olá 👋, como posso ajudar?</strong></p>
+    </div>
+    <div class="chat-footer">
+      <input type="text" id="chat-widget-input" placeholder="Digite sua mensagem..." />
+      <button id="chat-widget-send">Enviar</button>
+    </div>
+  </div>
+
+  <script>  const AREAS = {
+    corrida: {
+      name: "Corrida",
+      webhook: {
+        url: window.ENV.WEBHOOK_CORRIDA,
+        route: 'corrida'
+      }
+    },
+    caminhada: {
+      name: "Caminhada",
+      webhook: {
+        url: window.ENV.WEBHOOK_CORRIDA,
+        route: 'caminhada'
+      }
+    },
+    triathlon: {
+      name: "Triathlon",
+      webhook: {
+        url: window.ENV.WEBHOOK_CORRIDA,
+        route: 'triathlon'
+      }
+    },
+    trail: {
+      name: "Trail Running",
+      webhook: {
+        url: window.ENV.WEBHOOK_CORRIDA,
+        route: 'trail'
+      }
+    }
+  };
+  function getSelectedArea() {
+    return sessionStorage.getItem("selectedArea") || "corrida";
+  }
+  function setSelectedArea(area) {
+    sessionStorage.setItem("selectedArea", area);
+  }
+
+  function updateWebhookConfig() {
+    const area = getSelectedArea();
+    window.ChatWidgetConfig = {
+      webhook: AREAS[area].webhook
+    };
+  }
+
+  function getChats() {
+    const area = getSelectedArea();
+    const allChats = JSON.parse(localStorage.getItem("chats") || "[]");
+    return allChats.filter(c => c.area === area);
+  }
+  function saveChats(chats) {
+    const area = getSelectedArea();
+    const allChats = JSON.parse(localStorage.getItem("chats") || "[]");
+    const filtered = allChats.filter(c => c.area !== area);
+    localStorage.setItem("chats", JSON.stringify([...filtered, ...chats]));
+  }
+  function getCurrentChatId() {
+    return sessionStorage.getItem("chatId");
+  }
+  function setCurrentChatId(chatId) {
+    sessionStorage.setItem("chatId", chatId);
+  }
+  function renderChatList() {
+    const chatListDiv = document.getElementById("chat-list");
+    const chats = getChats();
+    const currentChatId = getCurrentChatId();
+    chatListDiv.innerHTML = "";
+    chats.forEach(chat => {
+      const p = document.createElement("p");
+      p.textContent = chat.name;
+      p.style.cursor = "pointer";
+      if (chat.id === currentChatId) {
+        p.style.fontWeight = "bold";
+        p.style.background = "#e0dbfa";
+        p.style.borderRadius = "6px";
+        p.style.padding = "4px 8px";
+      }
+      p.onclick = () => switchChat(chat.id);
+      chatListDiv.appendChild(p);
+    });
+  }
+
+  function newChat() {
+    const chats = getChats();
+    const chatId = "chat_" + Math.random().toString(36).substr(2, 9);
+    const name = "Chat " + (chats.length + 1);
+    const area = getSelectedArea();
+    chats.push({ id: chatId, name: name, history: [], area });
+    saveChats(chats);
+    setCurrentChatId(chatId);
+    renderChatList();
+    renderChatHistory([]);
+    const chatBody = document.getElementById("chat-widget-body");
+    chatBody.innerHTML = `<p class="bot-message"><strong>Olá 👋, novo chat iniciado. Como posso ajudar?</strong></p>`;
+    saveChatHistory(chatId, [
+      { from: "bot", text: "<strong>Olá 👋, novo chat iniciado. Como posso ajudar?</strong>" }
+    ]);
+  }
+
+  function switchChat(chatId) {
+    setCurrentChatId(chatId);
+    renderChatList();
+    const history = getChatHistory(chatId);
+    renderChatHistory(history);
+  }
+
+  function saveChatHistory(chatId, history) {
+    const chats = getChats();
+    const idx = chats.findIndex(c => c.id === chatId);
+    if (idx !== -1) {
+      chats[idx].history = history;
+      saveChats(chats);
+    }
+  }
+  function getChatHistory(chatId) {
+    const chats = getChats();
+    const chat = chats.find(c => c.id === chatId);
+    return chat ? (chat.history || []) : [];
+  }
+
+  function renderChatHistory(history) {
+    const chatBody = document.getElementById("chat-widget-body");
+    chatBody.innerHTML = "";
+    history.forEach((msg, idx) => {
+      // Wrapper para mensagem + botão copiar
+      const wrapper = document.createElement("div");
+      wrapper.className = "chat-msg-wrapper " + (msg.from === "user" ? "user" : "bot");
+      // Mensagem
+      const p = document.createElement("p");
+      p.className = msg.from === "user" ? "user-message" : "bot-message";
+      if (msg.from === "bot" && window.marked) {
+        p.innerHTML = marked.parse(msg.text);
+      } else {
+        p.innerHTML = msg.text;
+      }
+      // Botão copiar
+      const copyBtn = document.createElement("button");
+      copyBtn.className = "copy-btn";
+      copyBtn.title = "Copiar";
+      copyBtn.setAttribute("aria-label", "Copiar mensagem");
+      copyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" style="vertical-align:middle"><rect x="4" y="4" width="8" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="2.5" y="2.5" width="8" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.3"/></svg>`;
+      copyBtn.onclick = function (e) {
+        e.stopPropagation();
+        // Remove tags html para user, mantém markdown para bot
+        let textToCopy;
+        if (msg.from === "bot" && window.marked) {
+          // Copia o markdown original
+          textToCopy = msg.text;
+        } else {
+          // Copia texto puro
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = msg.text;
+          textToCopy = tempDiv.textContent || tempDiv.innerText || "";
+        }
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          copyBtn.classList.add("copied");
+          copyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" style="vertical-align:middle"><polyline points="4,9 7,12 12,5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>`;
+          setTimeout(() => {
+            copyBtn.classList.remove("copied");
+            copyBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" style="vertical-align:middle"><rect x="4" y="4" width="8" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="2.5" y="2.5" width="8" height="8" rx="2" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.3"/></svg>`;
+          }, 1200);
+        });
+      };
+      wrapper.appendChild(p);
+      wrapper.appendChild(copyBtn);
+      chatBody.appendChild(wrapper);
+    });
+    chatBody.scrollTop = chatBody.scrollHeight;
+  }
+
+  function initChat() {
+    const selector = document.getElementById("area-selector");
+    selector.value = getSelectedArea();
+    selector.onchange = function() {
+      setSelectedArea(this.value);
+      updateWebhookConfig();
+      sessionStorage.removeItem("chatId");
+      renderChatList();
+      if (getChats().length === 0) {
+        newChat();
+      } else {
+        const chats = getChats();
+        setCurrentChatId(chats[0].id);
+        renderChatHistory(getChatHistory(chats[0].id));
+      }
+    };
+
+    updateWebhookConfig();
+
+    let chats = getChats();
+    let chatId = getCurrentChatId();
+    if (!chats.length) {
+      chatId = "chat_" + Math.random().toString(36).substr(2, 9);
+      chats = [{ id: chatId, name: "Chat Geral", history: [
+        { from: "bot", text: "<strong>Olá 👋, como posso ajudar?</strong>" }
+      ], area: getSelectedArea() }];
+      saveChats(chats);
+      setCurrentChatId(chatId);
+    }
+    renderChatList();
+    const history = getChatHistory(getCurrentChatId());
+    renderChatHistory(history);
+  }
+
+    document.getElementById("chat-widget-send").addEventListener("click", sendMessage);
+    document.getElementById("chat-widget-input").addEventListener("keypress", function (e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function sendMessage() {
+      const input = document.getElementById("chat-widget-input");
+      const message = input.value.trim();
+      if (!message) return;
+
+      const chatBody = document.getElementById("chat-widget-body");
+
+      const userMsg = document.createElement("p");
+      userMsg.textContent = message;
+      userMsg.className = "user-message";
+      chatBody.appendChild(userMsg);
+      chatBody.scrollTop = chatBody.scrollHeight;
+
+      input.value = "";
+
+      const chatId = getCurrentChatId();
+
+      let history = getChatHistory(chatId);
+      history.push({ from: "user", text: message });
+
+      const chats = getChats();
+      const idx = chats.findIndex(c => c.id === chatId);
+      if (idx !== -1 && chats[idx].history.filter(m => m.from === "user").length === 0) {
+        chats[idx].name = message.length > 30 ? message.slice(0, 30) + "..." : message;
+        saveChats(chats);
+        renderChatList();
+      }
+
+      saveChatHistory(chatId, history);      fetch(window.ChatWidgetConfig.webhook.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chatId: chatId,
+          message: message,
+          route: window.ChatWidgetConfig.webhook.route
+        })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const botMsg = document.createElement("p");
+        
+        // Verificar se esta é uma resposta com planilha
+        const isPremium = localStorage.getItem('userPremium') === 'true';
+        const isSpreadsheet = data.output && (
+          data.output.includes('```excel') || 
+          data.output.includes('```csv') || 
+          data.output.includes('| ---') || 
+          data.output.includes('<table')
+        );
+        
+        let parsedOutput = data.output || "Desculpe, não entendi.";
+        
+        // Se for uma planilha e o usuário não for premium, adicionar classes para borrar e marca d'água
+        if (isSpreadsheet && !isPremium) {
+          botMsg.classList.add('watermarked');
+          // Envolver o conteúdo da planilha em uma div com blur
+          if (window.marked) {
+            // Encontrar o início e fim da tabela/planilha
+            const parts = splitPlanilhaContent(parsedOutput);
+            parsedOutput = parts.before + 
+              '<div class="blurred">' + parts.planilha + '</div>' + 
+              parts.after +
+              '<div style="margin-top: 15px; padding: 10px; background: #fff8e1; border-radius: 8px; color: #856404; border: 1px solid #ffeeba;">' +
+              '<strong>💡 Conteúdo limitado:</strong> Faça upgrade para a versão premium para visualizar e baixar planilhas completas sem marca d\'água.' +
+              '<br><a href="checkout.html" class="btn btn-primary" style="margin-top: 10px; display: inline-block; padding: 8px 16px;">Fazer Upgrade</a>' +
+              '</div>';
+          }
+        }
+        
+        botMsg.innerHTML = window.marked ? marked.parse(parsedOutput) : parsedOutput;
+        botMsg.className = "bot-message";
+        chatBody.appendChild(botMsg);
+        chatBody.scrollTop = chatBody.scrollHeight;
+        let history = getChatHistory(chatId);
+        history.push({ from: "bot", text: data.output || "Desculpe, não entendi." });
+        saveChatHistory(chatId, history);
+      })
+      .catch(err => console.error("Erro:", err));
+    }    window.onload = function() {
+      initChat();
+      
+      // Verificar status do usuário premium
+      const isPremium = localStorage.getItem('userPremium') === 'true';
+      if (isPremium) {
+        const accountStatus = document.getElementById('account-status');
+        if (accountStatus) {
+          accountStatus.innerHTML = `
+            <p class="premium-account">Conta Premium</p>
+            <span style="color: #43a047; font-size: 0.9rem;">✓ Acesso completo às planilhas</span>
+          `;
+        }
+      }
+    };
+    
+    // Função para dividir o conteúdo de uma resposta em partes (texto antes, planilha, texto depois)
+    function splitPlanilhaContent(text) {
+      const result = {
+        before: '',
+        planilha: '',
+        after: ''
+      };
+      
+      // Verificar se contém tabela markdown
+      if (text.includes('| ---')) {
+        const lines = text.split('\n');
+        let inTable = false;
+        let tableStartIndex = -1;
+        let tableEndIndex = -1;
+        
+        // Encontrar início e fim da tabela
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].startsWith('|') && lines[i].includes('---') && !inTable) {
+            inTable = true;
+            tableStartIndex = i - 1; // Linha anterior tem os cabeçalhos
+            continue;
+          }
+          
+          if (inTable && (!lines[i].startsWith('|') || lines[i].trim() === '')) {
+            tableEndIndex = i - 1;
+            break;
+          }
+        }
+        
+        if (inTable && tableEndIndex === -1) {
+          tableEndIndex = lines.length - 1;
+        }
+        
+        // Separar conteúdo
+        if (tableStartIndex > 0) {
+          result.before = lines.slice(0, tableStartIndex).join('\n') + '\n';
+        }
+        
+        if (tableStartIndex >= 0 && tableEndIndex >= 0) {
+          result.planilha = lines.slice(tableStartIndex, tableEndIndex + 1).join('\n');
+        }
+        
+        if (tableEndIndex < lines.length - 1) {
+          result.after = '\n' + lines.slice(tableEndIndex + 1).join('\n');
+        }
+      } 
+      // Verificar se contém blocos de código excel/csv
+      else if (text.includes('```excel') || text.includes('```csv')) {
+        const codeBlockStart = Math.max(text.indexOf('```excel'), text.indexOf('```csv'));
+        if (codeBlockStart >= 0) {
+          const codeBlockEnd = text.indexOf('```', codeBlockStart + 4);
+          if (codeBlockEnd >= 0) {
+            result.before = text.substring(0, codeBlockStart);
+            result.planilha = text.substring(codeBlockStart, codeBlockEnd + 3);
+            result.after = text.substring(codeBlockEnd + 3);
+          }
+        }
+      }
+      // Verificar se contém tabela HTML
+      else if (text.includes('<table')) {
+        const tableStart = text.indexOf('<table');
+        if (tableStart >= 0) {
+          const tableEnd = text.indexOf('</table>', tableStart) + 8;
+          if (tableEnd >= 8) {
+            result.before = text.substring(0, tableStart);
+            result.planilha = text.substring(tableStart, tableEnd);
+            result.after = text.substring(tableEnd);
+          }
+        }
+      }
+      
+      // Se não encontrou nada específico, retorna o texto completo na planilha
+      if (!result.planilha) {
+        result.planilha = text;
+      }
+      
+      return result;
+    }
+  </script>
+</body>
+</html>
