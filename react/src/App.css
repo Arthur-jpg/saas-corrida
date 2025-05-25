@@ -1,8 +1,36 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Geist Sans', system-ui, -apple-system, sans-serif;
+  height: 100vh;
+  overflow: hidden;
+}
+
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+:root {
+  --primary-color: #FF4B4B;  /* Vermelho esportivo */
+  --secondary-color: #2C3E50; /* Azul escuro para contraste */
+  --accent-color: #FF9F1C;   /* Laranja energético */
+  --bg-light: #F8F9FA;
+  --bg-dark: #343A40;
+  --text-light: #F8F9FA;
+  --text-dark: #212529;
+}
+
+/* Apenas aplicar estilos de layout para o app quando não for landing page */
+.app-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .logo {
@@ -42,48 +70,135 @@
 }
 
 .sidebar {
-  width: 250px;
-  background-color: #f4f4f4;
-  border-right: 1px solid #ddd;
-  padding: 20px;
+  width: 280px;
+  background: var(--secondary-color);
+  border-right: 1px solid rgba(255,255,255,0.1);
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
+  color: var(--text-light);
 }
+
 .sidebar h2 {
-  font-size: 20px;
-  margin-bottom: 20px;
+  font-size: 24px;
+  margin-bottom: 24px;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+
+.sidebar h2::before {
+  content: "🏃";
+  font-size: 28px;
+}
+
 .sidebar button {
-  background: #854fff;
-  color: white;
+  background: var(--primary-color);
+  color: var(--text-light);
   border: none;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.sidebar button:hover {
+  background: #ff3333;
+  transform: translateY(-1px);
+}
+
+.sidebar select {
+  background: rgba(255,255,255,0.1);
+  color: var(--text-light);
+  border: 1px solid rgba(255,255,255,0.2);
   padding: 10px;
   border-radius: 8px;
   cursor: pointer;
+  font-size: 14px;
+}
+
+.sidebar select option {
+  background: var(--secondary-color);
+  color: var(--text-light);
+}
+
+#chat-list {
+  flex: 1;
+  overflow-y: auto;
+  margin: 10px -12px;
+  padding: 0 12px;
+}
+
+#chat-list p {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  transition: all 0.2s;
+  color: var(--text-light);
+  opacity: 0.8;
+}
+
+#chat-list p:hover {
+  background: rgba(255,255,255,0.1);
+  opacity: 1;
+}
+
+#chat-list p.active {
+  background: var(--primary-color) !important;
+  color: white;
+  opacity: 1;
 }
 
 .chat-container {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background-color: #fff;
+  background: var(--bg-light);
 }
 
 .chat-header {
-  background: #854fff;
-  color: white;
-  padding: 20px;
+  background: var(--primary-color);
+  color: var(--text-light);
+  padding: 20px 32px;
   font-size: 18px;
   font-weight: bold;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.premium-header {
+  background: linear-gradient(90deg, #0d47a1, #1976d2);
+}
+
+.premium-badge {
+  background-color: #ffd700;
+  color: #333;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.free-badge {
+  background-color: #e0e0e0;
+  color: #555;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
 }
 
 .chat-body {
   flex: 1;
-  padding: 20px;
+  padding: 24px;
   overflow-y: auto;
-  overflow-x: hidden;
-  position: relative;
+  background: var(--bg-light);
 }
 
 .chat-body p {
@@ -96,39 +211,54 @@
 }
 
 .user-message {
-  background: #f1f1f1;
-  color: #333;
-  align-self: flex-end;
+  background: white !important;
+  color: var(--text-dark) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border: 1px solid rgba(0,0,0,0.1);
 }
 
 .bot-message {
-  background: #854fff;
-  color: #fff;
-  align-self: flex-start;
+  background: var(--primary-color) !important;
+  color: var(--text-light) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .chat-footer {
+  background: white;
+  padding: 16px 24px;
+  border-top: 1px solid rgba(0,0,0,0.1);
   display: flex;
-  padding: 12px;
-  border-top: 1px solid #ddd;
-  gap: 10px;
+  gap: 12px;
 }
 
 .chat-footer input {
   flex: 1;
-  padding: 10px;
+  padding: 12px 16px;
   border-radius: 8px;
-  border: 1px solid #ccc;
+  border: 2px solid #e9ecef;
+  font-size: 15px;
+  transition: border 0.2s;
+}
+
+.chat-footer input:focus {
+  border-color: var(--primary-color);
   outline: none;
 }
 
 .chat-footer button {
-  background: #854fff;
+  background: var(--primary-color);
   color: white;
   border: none;
-  padding: 10px 16px;
+  padding: 12px 24px;
   border-radius: 8px;
+  font-weight: 600;
   cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.chat-footer button:hover {
+  background: #ff3333;
+  transform: translateY(-1px);
 }
 
 .chat-msg-wrapper {
@@ -157,31 +287,130 @@
   position: relative;
 }
 .copy-btn {
+  background: white;
+  border: 1px solid rgba(0,0,0,0.1);
+  color: var(--text-dark);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   position: absolute;
   top: 8px;
   right: 12px;
-  background: #fff;
-  border: 1px solid #eee;
-  color: #888;
+}
+
+.copy-btn:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.copy-btn.copied {
+  background: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+/* Planilha Premium */
+.blurred {
+  filter: blur(4px);
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 16px 0;
+  border: 2px solid var(--primary-color);
+}
+
+.blurred::after {
+  content: "🔒 Conteúdo Premium";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--primary-color);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  white-space: nowrap;
+}
+
+/* Account Status */
+.account-status {
+  padding: 16px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+  margin-top: auto;
+}
+
+.account-status p {
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.account-status .btn-primary {
+  background: var(--accent-color);
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
   border-radius: 6px;
-  padding: 4px 7px;
-  font-size: 15px;
-  cursor: pointer;
-  opacity: 0.7;
-  transition: background 0.2s, color 0.2s, opacity 0.2s;
-  z-index: 2;
+  display: block;
+  text-align: center;
+  font-weight: 600;
+  transition: transform 0.2s;
+}
+
+.account-status .btn-primary:hover {
+  transform: translateY(-1px);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.3);
+}
+
+/* Premium/Free account indicators */
+.free-account {
+  opacity: 0.8;
+  color: #e0e0e0;
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 5px;
 }
-.copy-btn:hover, .copy-btn.copied {
-  background: #f4f4f4;
-  color: #333;
-  opacity: 1;
-  border-color: #ccc;
+
+.free-account::before {
+  content: "🔒";
+  font-size: 14px;
 }
-.copy-btn.copied {
-  color: #1a7f37;
-  background: #e6ffe6;
-  border-color: #1a7f37;
+
+.premium-account {
+  color: #ffd700;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.premium-account::before {
+  content: "⭐";
+  font-size: 14px;
 }

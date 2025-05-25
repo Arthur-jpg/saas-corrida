@@ -1,0 +1,16 @@
+/* Define regras globais para permitir scroll */
+html, body, #root, .landing-page {
+  height: auto !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+  overflow-y: visible !important;
+  overflow-x: hidden !important;
+}
+
+/* Evite que outros estilos interfiram */
+#root {
+  display: block !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
