@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import '../styles/LandingPage.css';
+import { SignInButton, UserButton, useUser, useSignIn } from '@clerk/clerk-react';
 
 export default function LandingPage({ onStartFree, onStartPremium }) {
   // Força scroll para o topo ao carregar
@@ -8,6 +9,9 @@ export default function LandingPage({ onStartFree, onStartPremium }) {
     document.body.style.overflow = 'visible';
     document.documentElement.style.overflow = 'visible';
   }, []);
+
+  const { isSignedIn, user } = useUser();
+  const { openSignIn } = useSignIn();
 
   return (
     <div className="landing-page">
@@ -19,7 +23,7 @@ export default function LandingPage({ onStartFree, onStartPremium }) {
         </div>
         <div className="nav-links">          <a href="#features">Recursos</a>
           <a href="#pricing">Planos</a>
-          <button className="nav-btn login">Login</button>
+          {isSignedIn ? <UserButton /> : <SignInButton />}
           <button className="nav-btn signup" onClick={onStartFree}>Começar Grátis</button>
         </div>
       </nav>
@@ -103,7 +107,27 @@ export default function LandingPage({ onStartFree, onStartPremium }) {
               <li>✓ Múltiplos esportes</li>              <li>✓ Exportação PDF/Excel</li>
               <li>✓ Suporte prioritário</li>
             </ul>
-            <button className="pricing-btn" onClick={onStartPremium}>Assinar Premium</button>
+            <button className="pricing-btn" onClick={async () => {
+    if (!isSignedIn) {
+      if (openSignIn) openSignIn();
+      return;
+    }
+    try {
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'premium', clerkUserId: user.id })
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert('Erro ao redirecionar para o pagamento.');
+      }
+    } catch (e) {
+      alert('Erro ao conectar ao servidor de pagamentos.');
+    }
+}}>Assinar Premium</button>
           </div>
         </div>
       </section>
